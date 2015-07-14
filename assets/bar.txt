@@ -1,0 +1,2 @@
+this is bar.txt
+it's a brave file

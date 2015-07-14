@@ -39,7 +39,7 @@ def test():
     print("test - end")
 
 
-def loop(n=100):
+def loop(n=1):
     for _ in range(n):
         time.sleep(.2)
         threading.Thread(target=test).start()
