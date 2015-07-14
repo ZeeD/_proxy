@@ -2,6 +2,8 @@
 
 import urllib.request
 import operator
+import threading
+import time
 
 RESOURCE = 'http://skygo.sky.it/config/config.min.js'
 
@@ -14,6 +16,7 @@ def get():
     return urllib.request.urlopen(RESOURCE)
 
 def test():
+    print("test - begin")
     response_get = get()
     response_proxy = proxy()
 
@@ -33,11 +36,13 @@ def test():
     body_proxy = response_proxy.read()
 
     assert body_get == body_proxy, 'body %r - %r' % (body_get, body_proxy)
+    print("test - end")
 
 
 def loop(n=100):
     for _ in range(n):
-        test()
+        time.sleep(.2)
+        threading.Thread(target=test).start()
 
 if __name__ == '__main__':
     loop()
