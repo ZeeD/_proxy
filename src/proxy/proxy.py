@@ -7,41 +7,26 @@ import threading
 class RequestHandler(socketserver.BaseRequestHandler):
     def handle(self):
         proxy_request = RequestHandler.read_all(self.request)
-        print('handle [proxy_request: %r]' % (proxy_request, ))
-
         server, server_request = RequestHandler.convert_request(proxy_request)
-        print('handle [server: %r, server_request: %r]' %
-              (server, server_request))
-
-        response = RequestHandler.send_request_get_response(server,
+        response_proxy = RequestHandler.send_request_get_response(server,
                                                             server_request)
-        print('handle [response: %r]' % (response, ))
-
-        RequestHandler.write_all(self.request, response)
+        RequestHandler.write_all(self.request, response_proxy)
 
     @staticmethod
     def read_all(socket):
-        print('read_all(socket: %r)' % (socket, ))
         chunks = []
         while True:
             chunk = socket.recv(4096)
-            print('read_all [chunk: %r]' % (chunk, ))
-
             chunks.append(chunk)
             if len(chunk) < 4096:
                 break
-        ret = b''.join(chunks)
-        print('read_all [ret: %r]' % (ret, ))
-        return ret
+        return b''.join(chunks)
 
     @staticmethod
-    def write_all(socket, response):
-        print('write_all(socket: %r, response: %r)' % (socket, response))
+    def write_all(socket, response_proxy):
         i = 0
         while True:
-            print('write_all [i: %r]' % (i, ))
-            rest = response[i:]
-            print('write_all [rest: %r]' % (rest, ))
+            rest = response_proxy[i:]
             if not len(rest):
                 break
             i = socket.send(rest)
@@ -64,8 +49,11 @@ class RequestHandler(socketserver.BaseRequestHandler):
 
     @staticmethod
     def send_request_get_response(server, request):
-        (host, port) = server[server.index(b'//') + 2:].split(b':')
-        port = int(port)
+        (host, *port) = server[server.index(b'//') + 2:].split(b':')
+        if port:
+            port = int(port[0])
+        else:
+            port = 80
         with socket.create_connection((host, port)) as conn:
             RequestHandler.write_all(conn, request)
             return RequestHandler.read_all(conn)

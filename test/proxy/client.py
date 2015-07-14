@@ -1,40 +1,43 @@
 #!/usr/bin/env python
 
 import urllib.request
+import operator
+
+RESOURCE = 'http://skygo.sky.it/config/config.min.js'
 
 def proxy():
-    # GET http://localhost:8080/server.py HTTP/1.1\r\n
-    # Accept-Encoding: identity\r\n
-    # Host: localhost:8080\r\n
-    # Connection: close\r\n
-    # User-Agent: Python-urllib/3.4\r\n
-    # \r\n
-
-    opener = urllib.request.ProxyHandler({
-        'http': 'http://localhost:9999'
-    })
+    opener = urllib.request.ProxyHandler({ 'http': 'http://localhost:9999' })
     urllib.request.install_opener(urllib.request.build_opener(opener))
-
-    return urllib.request.urlopen('http://skygo.sky.it/config/config.min.js')
+    return urllib.request.urlopen(RESOURCE)
 
 def get():
-    # GET / HTTP/1.1\r\n
-    # Accept-Encoding: identity\r\n
-    # Host: localhost:9999\r\n
-    # Connection: close\r\n
-    # User-Agent: Python-urllib/3.4\r\n
-    # \r\n
+    return urllib.request.urlopen(RESOURCE)
 
-    return urllib.request.urlopen('http://localhost:9999')
+def test():
+    response_get = get()
+    response_proxy = proxy()
+
+    for attr in ( 'msg', 'status', 'reason' ):
+        f = operator.attrgetter(attr)
+        assert f(response_get) == f(response_proxy), attr
+
+    headers_get = response_get.getheaders()
+    headers_proxy = response_proxy.getheaders()
+
+    for ((header_get, value_get), (header_proxy, value_proxy)) in zip(headers_get, headers_proxy):
+        assert header_get == header_proxy, 'header %r - %r' % (header_get, header_proxy)
+        if header_get not in ('Date', 'Expires'):
+            assert value_get == value_proxy, 'value %r - %r' % (value_get, value_proxy)
+
+    body_get = response_get.read()
+    body_proxy = response_proxy.read()
+
+    assert body_get == body_proxy, 'body %r - %r' % (body_get, body_proxy)
+
+
+def loop(n=100):
+    for _ in range(n):
+        test()
 
 if __name__ == '__main__':
-    response = proxy()
-    print('msg: %r' % (response.msg))
-    print('status: %r' % (response.status))
-    print('reason: %r' % (response.reason))
-
-    print('headers:')
-    for (header, value) in  response.getheaders():
-        print('\t%r: %r' % (header, value))
-
-    print('--------------------\nbody: \n%r' % (response.read()))
+    loop()
